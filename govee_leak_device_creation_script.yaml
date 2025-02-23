@@ -3,7 +3,7 @@
 # 
 # Instructions: 
 #  1. Edit line 19 with your MQTT discovery prefix and line 21 with the Govee main topic
-#  2. Create a list of leak sensor device starting on line 27
+#  2. Create a list of leak sensor devices starting on line 27
 #  (Optional:)
 #  3. Modify, add, or remove any sensor starting on line 56. All entries under the "config:" key are documented here:
 #     https://www.home-assistant.io/integrations/sensor.mqtt/#configuration-variables
