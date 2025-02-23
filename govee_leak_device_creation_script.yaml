@@ -1,0 +1,106 @@
+## Govee Leak Device Autodiscovery Script
+# v1.0
+# 
+# Instructions: 
+#  1. Edit line 19 with your MQTT discovery prefix and line 21 with the Govee main topic
+#  2. Create a list of leak sensor device starting on line 27
+#  (Optional:)
+#  3. Modify, add, or remove any sensor starting on line 56. All entries under the "config:" key are documented here:
+#     https://www.home-assistant.io/integrations/sensor.mqtt/#configuration-variables
+#     In order to pass a template, the brackets must be commented out. Use the following example as a reference:
+#     value_template: "{{ '{{' }} value | float(0) * 1.234 {{ '}}' }}"
+#
+script:
+  govee_leak_device_autodiscovery_creator:
+    alias: 'Govee Leak Device Autodiscovery Creator'
+    sequence:
+      - variables: 
+          # MQTT discovery prefix. This is "homeassistant" by default.
+          discovery_prefix: homeassistant
+          # MQTT topic which all leak sensors are listed under
+          govee_topic: rtl_433/Govee-Water
+      - repeat:
+          for_each:
+            ## Add each device as a list here with the device_name, rtl_433_topic, and device parameters. The device_name and rtl_433_topic must be unique. 
+            # Under the 'device:' key, enter any parameters desired.
+            # List of available parameters here: https://www.home-assistant.io/integrations/sensor.mqtt/#device
+            - device_name: Utility Room Floor Drain Water Leak
+              rtl_433_id: 43160
+              device:
+                manufacturer: Govee
+                model: Water leak sensor
+                model_id: H5054
+                suggested_area: Utility Room
+                serial_number: ZS41E33600557
+            - device_name: Utility Room Irrigation Exit Water Leak
+              rtl_433_id: 27224
+              device:
+                manufacturer: Govee
+                model: Water leak sensor
+                model_id: H5054
+                suggested_area: Utility Room
+                serial_number: ZS41E34102471
+          sequence:
+            - variables:
+                base_topic: "{{ govee_topic ~ '/' ~ repeat.item.rtl_433_id }}"
+                autodiscovery_object_id: "{{ ('Govee-Water ' ~ repeat.item.rtl_433_id) | slugify }}"
+                common: >
+                  {{ dict(
+                    [("device", dict(
+                      repeat.item.device.items() | list
+                      + [("identifiers", [repeat.item.rtl_433_id])]
+                      + [("name", repeat.item.device_name)] )
+                      )]
+                    )
+                  }}
+            - repeat:
+                for_each:
+                  - type: binary_sensor
+                    config:
+                      name: Leak Detected
+                      state_topic: "{{ base_topic ~ '/detect_wet' }}"
+                      device_class: moisture
+                      payload_on: 1
+                      payload_off: 0
+                      off_delay: 10
+                  - type: sensor
+                    config:
+                      name: Battery Voltage
+                      state_topic: "{{ base_topic ~ '/battery_mV' }}"
+                      device_class: voltage
+                      unit_of_measurement: V
+                      entity_category: diagnostic
+                      value_template: '{{ "{{" }} (value | float(0) / 1000) | round(2) {{ "}}" }}'
+                  - type: sensor
+                    config:
+                      name: Battery
+                      state_topic: "{{ base_topic ~ '/battery_ok' }}"
+                      device_class: battery
+                      unit_of_measurement: "%"
+                      entity_category: diagnostic
+                      value_template: '{{ "{{" }} (value | float(0) * 100) | round(0) {{ "}}" }}'
+                  - type: sensor
+                    config:
+                      name: Last Seen
+                      state_topic: "{{ base_topic ~ '/time' }}"
+                      device_class: timestamp
+                      entity_category: diagnostic
+                      value_template: '{{ "{{" }} (value ~ "+00:00") | as_datetime | as_local {{ "}}" }}'
+                  - type: sensor
+                    config:
+                      name: Last Event
+                      state_topic: "{{ base_topic ~ '/event' }}"
+                      entity_category: diagnostic
+                sequence:
+                  - service: mqtt.publish
+                    data:
+                      topic: >
+                        {{ discovery_prefix }}/{{ repeat.item.type }}/{{ autodiscovery_object_id }}/{{ repeat.item.config.name | slugify }}/config
+                      payload: >
+                        {{ dict(
+                          common.items() | list
+                          + repeat.item.config.items() | list
+                          + [("unique_id", repeat.item.config.state_topic ~ '//' ~ repeat.item.config.name | slugify)]
+                          ) | to_json
+                        }}
+                      retain: true
