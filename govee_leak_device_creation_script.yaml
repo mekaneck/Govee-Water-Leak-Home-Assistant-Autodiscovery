@@ -24,22 +24,22 @@ script:
             ## Add each device as a list here with the device_name, rtl_433_topic, and device parameters. The device_name and rtl_433_topic must be unique. 
             # Under the 'device:' key, enter any parameters desired.
             # List of available parameters here: https://www.home-assistant.io/integrations/sensor.mqtt/#device
-            - device_name: Utility Room Floor Drain Water Leak
-              rtl_433_id: 43160
+            - device_name: Basement Water Leak
+              rtl_433_id: 12345
               device:
                 manufacturer: Govee
                 model: Water leak sensor
                 model_id: H5054
-                suggested_area: Utility Room
-                serial_number: ZS41E33600557
-            - device_name: Utility Room Irrigation Exit Water Leak
-              rtl_433_id: 27224
+                suggested_area: Basement
+                serial_number: ZS41E31234567
+            - device_name: Laundry Room Water Leak
+              rtl_433_id: 98765
               device:
                 manufacturer: Govee
                 model: Water leak sensor
                 model_id: H5054
-                suggested_area: Utility Room
-                serial_number: ZS41E34102471
+                suggested_area: Laundry Room
+                serial_number: ZS41E31234568
           sequence:
             - variables:
                 base_topic: "{{ govee_topic ~ '/' ~ repeat.item.rtl_433_id }}"
